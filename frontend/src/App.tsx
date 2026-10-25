@@ -14,7 +14,6 @@ import type {
   TimelineResponse,
   VendorChecklist,
   CreativeIdeas,
-  ConsolidatedPlan,
   PlannerRequest,
 } from './types';
 import { BudgetVisualizer } from './components/BudgetVisualizer';
@@ -176,14 +175,6 @@ export default function App() {
 
   const isAnyLoading =
     isBudgetLoading || isTimelineLoading || isVendorsLoading || isIdeasLoading;
-
-  // Build combined plan object for ExportManager if any data exists
-  const combinedPlan: ConsolidatedPlan = {
-    budget: budgetData || { error: budgetError || 'Budget not loaded' },
-    timeline: timelineData || { error: timelineError || 'Timeline not loaded' },
-    vendors: vendorsData || { error: vendorsError || 'Vendors not loaded' },
-    ideas: ideasData || { error: ideasError || 'Ideas not loaded' },
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -357,7 +348,7 @@ export default function App() {
 
         {/* Dashboard Grid rendered immediately on form submission */}
         {hasStartedPlanning && (
-          <main className="space-y-8 animate-in fade-in duration-500">
+          <main className="space-y-8 animate-in fade-in duration-500 p-2 sm:p-4 rounded-3xl">
             {/* Dashboard Action Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
               <div>
@@ -369,7 +360,16 @@ export default function App() {
                 </p>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-                <ExportManager plan={combinedPlan} />
+                <ExportManager
+                  planData={{
+                    event_info: formData,
+                    budget: budgetData,
+                    timeline: timelineData,
+                    vendors: vendorsData,
+                    ideas: ideasData,
+                  }}
+                  fileName={`${formData.event_type}_Plan.pdf`}
+                />
               </div>
             </div>
 

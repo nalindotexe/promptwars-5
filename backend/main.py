@@ -1,5 +1,6 @@
 import logging
-from fastapi import FastAPI, HTTPException
+from typing import Any, Dict
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from agents import (
@@ -8,6 +9,7 @@ from agents import (
     generate_timeline,
     generate_vendors,
 )
+from pdf_generator import generate_event_pdf
 from schemas import (
     BudgetResponse,
     CreativeIdeas,
@@ -92,4 +94,23 @@ async def plan_ideas(request: PlannerRequest):
         raise HTTPException(
             status_code=502,
             detail=f"Creative ideas generation failed: {exc}",
+        ) from exc
+
+
+@app.post("/api/export-pdf")
+async def export_pdf(payload: Dict[str, Any]):
+    try:
+        pdf_bytes = generate_event_pdf(payload)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": 'attachment; filename="Event_Plan.pdf"'
+            },
+        )
+    except Exception as exc:
+        logger.exception("Failed to generate server-side PDF")
+        raise HTTPException(
+            status_code=500,
+            detail=f"PDF generation failed: {exc}",
         ) from exc
