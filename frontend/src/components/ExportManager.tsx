@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Download, Check, FileText, Loader2, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 interface ExportManagerProps {
   planData: {
@@ -37,7 +38,7 @@ export const ExportManager: React.FC<ExportManagerProps> = ({
 
     try {
       const response = await axios.post(
-        'http://localhost:8000/api/export-pdf',
+        `${API_BASE_URL}/api/export-pdf`,
         planData,
         {
           responseType: 'blob',

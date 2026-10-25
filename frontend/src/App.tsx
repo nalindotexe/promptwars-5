@@ -21,15 +21,16 @@ import { TimelineView } from './components/TimelineView';
 import { VendorList } from './components/VendorList';
 import { MoodBoard } from './components/MoodBoard';
 import { ExportManager } from './components/ExportManager';
+import { API_BASE_URL } from './config';
 
 export default function App() {
   const [formData, setFormData] = useState<PlannerRequest>({
-    event_type: 'Wedding',
-    budget: 15000,
-    guest_count: 100,
+    event_type: 'Community festival',
+    budget: 3000,
+    guest_count: 300,
     date: '2027-06-15',
-    location: 'Napa Valley, CA',
-    vibe: 'Modern rustic romance with warm fairy lights and live acoustic music',
+    location: 'Bengaluru, India',
+    vibe: 'Modern cultural festival with live performances, food stalls, and local artisan markets',
   });
 
   // Controls whether the main layout grid has been triggered
@@ -98,7 +99,7 @@ export default function App() {
 
     // 1. Budget Agent Request
     axios
-      .post<BudgetResponse>('http://localhost:8000/api/plan/budget', formData, {
+      .post<BudgetResponse>(`${API_BASE_URL}/api/plan/budget`, formData, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 90000,
       })
@@ -117,7 +118,7 @@ export default function App() {
 
     // 2. Timeline Agent Request
     axios
-      .post<TimelineResponse>('http://localhost:8000/api/plan/timeline', formData, {
+      .post<TimelineResponse>(`${API_BASE_URL}/api/plan/timeline`, formData, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 90000,
       })
@@ -136,7 +137,7 @@ export default function App() {
 
     // 3. Vendors Agent Request
     axios
-      .post<VendorChecklist>('http://localhost:8000/api/plan/vendors', formData, {
+      .post<VendorChecklist>(`${API_BASE_URL}/api/plan/vendors`, formData, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 90000,
       })
@@ -155,7 +156,7 @@ export default function App() {
 
     // 4. Ideas Agent Request
     axios
-      .post<CreativeIdeas>('http://localhost:8000/api/plan/ideas', formData, {
+      .post<CreativeIdeas>(`${API_BASE_URL}/api/plan/ideas`, formData, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 90000,
       })
