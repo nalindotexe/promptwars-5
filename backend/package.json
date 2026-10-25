@@ -1,0 +1,10 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "test": "export PATH=\"$HOME/.local/bin:$PATH\" && uv run pytest",
+    "test:verbose": "export PATH=\"$HOME/.local/bin:$PATH\" && uv run pytest -v",
+    "dev": "export PATH=\"$HOME/.local/bin:$PATH\" && uv run uvicorn main:app --reload --port 8000"
+  }
+}
