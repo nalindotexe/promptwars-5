@@ -92,41 +92,57 @@ async def test_health_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_plan_endpoint_success(sample_payload, mock_budget, mock_timeline, mock_vendors, mock_ideas):
+async def test_budget_endpoint(sample_payload, mock_budget):
     transport = ASGITransport(app=app)
-
-    with patch("main.generate_budget", new_callable=AsyncMock) as m_budget, \
-         patch("main.generate_timeline", new_callable=AsyncMock) as m_timeline, \
-         patch("main.generate_vendors", new_callable=AsyncMock) as m_vendors, \
-         patch("main.generate_ideas", new_callable=AsyncMock) as m_ideas:
-
-        m_budget.return_value = mock_budget
-        m_timeline.return_value = mock_timeline
-        m_vendors.return_value = mock_vendors
-        m_ideas.return_value = mock_ideas
-
+    with patch("main.generate_budget", new_callable=AsyncMock) as m:
+        m.return_value = mock_budget
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.post("/api/plan", json=sample_payload)
-
-        assert response.status_code == 200
-        data = response.json()
-
-        # Validate that all 4 required response components are present
-        assert "budget" in data
-        assert "timeline" in data
-        assert "vendors" in data
-        assert "ideas" in data
-
-        assert len(data["budget"]["items"]) == 3
-        assert len(data["timeline"]["milestones"]) == 3
-        assert len(data["vendors"]["categories"]) == 2
-        assert len(data["ideas"]["themes"]) == 3
+            resp = await client.post("/api/plan/budget", json=sample_payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 3
 
 
 @pytest.mark.asyncio
-async def test_plan_endpoint_invalid_payload():
+async def test_timeline_endpoint(sample_payload, mock_timeline):
+    transport = ASGITransport(app=app)
+    with patch("main.generate_timeline", new_callable=AsyncMock) as m:
+        m.return_value = mock_timeline
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/plan/timeline", json=sample_payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["milestones"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_vendors_endpoint(sample_payload, mock_vendors):
+    transport = ASGITransport(app=app)
+    with patch("main.generate_vendors", new_callable=AsyncMock) as m:
+        m.return_value = mock_vendors
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/plan/vendors", json=sample_payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["categories"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_ideas_endpoint(sample_payload, mock_ideas):
+    transport = ASGITransport(app=app)
+    with patch("main.generate_ideas", new_callable=AsyncMock) as m:
+        m.return_value = mock_ideas
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/plan/ideas", json=sample_payload)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["themes"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_endpoint_invalid_payload():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Missing required fields like budget and guest_count
-        response = await client.post("/api/plan", json={"event_type": "Wedding"})
-        assert response.status_code == 422
+        resp = await client.post("/api/plan/budget", json={"event_type": "Wedding"})
+        assert resp.status_code == 422

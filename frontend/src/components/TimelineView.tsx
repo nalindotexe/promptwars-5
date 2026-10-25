@@ -1,9 +1,11 @@
 import React from 'react';
-import { CalendarClock, AlertTriangle, Clock, Flag } from 'lucide-react';
+import { CalendarClock, AlertTriangle, Clock, Flag, Loader2 } from 'lucide-react';
 import type { TimelineResponse } from '../types';
 
 interface TimelineViewProps {
-  data: TimelineResponse;
+  data?: TimelineResponse | null;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
 const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low' | string) => {
@@ -30,11 +32,72 @@ const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low' | string) => {
   }
 };
 
-export const TimelineView: React.FC<TimelineViewProps> = ({ data }) => {
+export const TimelineView: React.FC<TimelineViewProps> = ({
+  data,
+  isLoading = false,
+  error = null,
+}) => {
+  // Loading Card State
+  if (isLoading) {
+    return (
+      <section
+        aria-labelledby="timeline-loading-heading"
+        className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl min-h-[380px] flex flex-col justify-between"
+      >
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <CalendarClock className="w-5 h-5 animate-pulse" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 id="timeline-loading-heading" className="text-xl font-bold text-slate-100">
+              Chronological Milestones
+            </h2>
+            <p className="text-xs text-slate-400">Synthesizing execution timeline...</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-16 space-y-3">
+          <Loader2 className="w-8 h-8 text-purple-500 animate-spin" aria-hidden="true" />
+          <p className="text-sm font-medium text-slate-300">
+            Timeline Agent drafting phased milestones...
+          </p>
+          <p className="text-xs text-slate-500">Prioritizing critical paths leading to event day</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Error Card State
+  if (error || !data) {
+    return (
+      <section
+        aria-labelledby="timeline-error-heading"
+        className="bg-slate-900/90 border border-red-500/30 rounded-2xl p-6 sm:p-7 shadow-xl min-h-[380px] flex flex-col justify-between"
+      >
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+            <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 id="timeline-error-heading" className="text-xl font-bold text-slate-100">
+              Timeline Notice
+            </h2>
+            <p className="text-xs text-slate-400">Milestone schedule status</p>
+          </div>
+        </div>
+        <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-sm space-y-1">
+          <p className="font-semibold">Unable to load timeline milestones</p>
+          <p className="text-xs text-red-300/80">
+            {error || 'Timeline generation delayed due to high demand. Please try again.'}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-labelledby="timeline-heading"
-      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl space-y-6"
+      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl space-y-6 animate-in fade-in duration-300"
     >
       <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
         <div className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">

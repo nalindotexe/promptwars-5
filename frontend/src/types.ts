@@ -15,6 +15,7 @@ export interface BudgetItem {
 
 export interface BudgetResponse {
   items: BudgetItem[];
+  error?: string;
 }
 
 export interface TimelineMilestone {
@@ -25,6 +26,7 @@ export interface TimelineMilestone {
 
 export interface TimelineResponse {
   milestones: TimelineMilestone[];
+  error?: string;
 }
 
 export interface VendorCategory {
@@ -34,6 +36,7 @@ export interface VendorCategory {
 
 export interface VendorChecklist {
   categories: VendorCategory[];
+  error?: string;
 }
 
 export interface CreativeTheme {
@@ -44,11 +47,12 @@ export interface CreativeTheme {
 
 export interface CreativeIdeas {
   themes: CreativeTheme[];
+  error?: string;
 }
 
 export interface ConsolidatedPlan {
-  budget: BudgetResponse;
-  timeline: TimelineResponse;
-  vendors: VendorChecklist;
-  ideas: CreativeIdeas;
+  budget: BudgetResponse | { error: string };
+  timeline: TimelineResponse | { error: string };
+  vendors: VendorChecklist | { error: string };
+  ideas: CreativeIdeas | { error: string };
 }

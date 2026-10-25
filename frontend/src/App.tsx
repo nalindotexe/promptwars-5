@@ -6,16 +6,22 @@ import {
   Users,
   MapPin,
   Sparkles,
-  Loader2,
-  AlertCircle,
   ArrowRight,
   RotateCcw,
 } from 'lucide-react';
-import type { ConsolidatedPlan, PlannerRequest } from './types';
+import type {
+  BudgetResponse,
+  TimelineResponse,
+  VendorChecklist,
+  CreativeIdeas,
+  ConsolidatedPlan,
+  PlannerRequest,
+} from './types';
 import { BudgetVisualizer } from './components/BudgetVisualizer';
 import { TimelineView } from './components/TimelineView';
 import { VendorList } from './components/VendorList';
 import { MoodBoard } from './components/MoodBoard';
+import { ExportManager } from './components/ExportManager';
 
 export default function App() {
   const [formData, setFormData] = useState<PlannerRequest>({
@@ -27,9 +33,25 @@ export default function App() {
     vibe: 'Modern rustic romance with warm fairy lights and live acoustic music',
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [planResult, setPlanResult] = useState<ConsolidatedPlan | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Controls whether the main layout grid has been triggered
+  const [hasStartedPlanning, setHasStartedPlanning] = useState(false);
+
+  // Decoupled module states
+  const [budgetData, setBudgetData] = useState<BudgetResponse | null>(null);
+  const [isBudgetLoading, setIsBudgetLoading] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+
+  const [timelineData, setTimelineData] = useState<TimelineResponse | null>(null);
+  const [isTimelineLoading, setIsTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+
+  const [vendorsData, setVendorsData] = useState<VendorChecklist | null>(null);
+  const [isVendorsLoading, setIsVendorsLoading] = useState(false);
+  const [vendorsError, setVendorsError] = useState<string | null>(null);
+
+  const [ideasData, setIdeasData] = useState<CreativeIdeas | null>(null);
+  const [isIdeasLoading, setIsIdeasLoading] = useState(false);
+  const [ideasError, setIdeasError] = useState<string | null>(null);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -44,39 +66,123 @@ export default function App() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setErrorMessage(null);
+  const handleReset = () => {
+    setHasStartedPlanning(false);
+    setBudgetData(null);
+    setTimelineData(null);
+    setVendorsData(null);
+    setIdeasData(null);
+    setBudgetError(null);
+    setTimelineError(null);
+    setVendorsError(null);
+    setIdeasError(null);
+  };
 
-    try {
-      const response = await axios.post<ConsolidatedPlan>(
-        'http://localhost:8000/api/plan',
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          timeout: 90000,
-        }
-      );
-      setPlanResult(response.data);
-    } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        const detail = err.response?.data?.detail;
-        setErrorMessage(
-          typeof detail === 'string'
-            ? detail
-            : err.message || 'Failed to generate event plan from server.'
-        );
-      } else if (err instanceof Error) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('An unexpected error occurred while communicating with the server.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Immediately render empty layout grid with individual loading spinners
+    setHasStartedPlanning(true);
+
+    // Initialize all loading states and clear old errors/data
+    setIsBudgetLoading(true);
+    setBudgetError(null);
+
+    setIsTimelineLoading(true);
+    setTimelineError(null);
+
+    setIsVendorsLoading(true);
+    setVendorsError(null);
+
+    setIsIdeasLoading(true);
+    setIdeasError(null);
+
+    // 1. Budget Agent Request
+    axios
+      .post<BudgetResponse>('http://localhost:8000/api/plan/budget', formData, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 90000,
+      })
+      .then((res) => {
+        setBudgetData(res.data);
+      })
+      .catch((err) => {
+        const msg = axios.isAxiosError(err)
+          ? err.response?.data?.detail || err.message
+          : 'Failed to generate budget.';
+        setBudgetError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      })
+      .finally(() => {
+        setIsBudgetLoading(false);
+      });
+
+    // 2. Timeline Agent Request
+    axios
+      .post<TimelineResponse>('http://localhost:8000/api/plan/timeline', formData, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 90000,
+      })
+      .then((res) => {
+        setTimelineData(res.data);
+      })
+      .catch((err) => {
+        const msg = axios.isAxiosError(err)
+          ? err.response?.data?.detail || err.message
+          : 'Failed to generate timeline.';
+        setTimelineError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      })
+      .finally(() => {
+        setIsTimelineLoading(false);
+      });
+
+    // 3. Vendors Agent Request
+    axios
+      .post<VendorChecklist>('http://localhost:8000/api/plan/vendors', formData, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 90000,
+      })
+      .then((res) => {
+        setVendorsData(res.data);
+      })
+      .catch((err) => {
+        const msg = axios.isAxiosError(err)
+          ? err.response?.data?.detail || err.message
+          : 'Failed to generate vendor checklist.';
+        setVendorsError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      })
+      .finally(() => {
+        setIsVendorsLoading(false);
+      });
+
+    // 4. Ideas Agent Request
+    axios
+      .post<CreativeIdeas>('http://localhost:8000/api/plan/ideas', formData, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 90000,
+      })
+      .then((res) => {
+        setIdeasData(res.data);
+      })
+      .catch((err) => {
+        const msg = axios.isAxiosError(err)
+          ? err.response?.data?.detail || err.message
+          : 'Failed to generate creative concepts.';
+        setIdeasError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      })
+      .finally(() => {
+        setIsIdeasLoading(false);
+      });
+  };
+
+  const isAnyLoading =
+    isBudgetLoading || isTimelineLoading || isVendorsLoading || isIdeasLoading;
+
+  // Build combined plan object for ExportManager if any data exists
+  const combinedPlan: ConsolidatedPlan = {
+    budget: budgetData || { error: budgetError || 'Budget not loaded' },
+    timeline: timelineData || { error: timelineError || 'Timeline not loaded' },
+    vendors: vendorsData || { error: vendorsError || 'Vendors not loaded' },
+    ideas: ideasData || { error: ideasError || 'Ideas not loaded' },
   };
 
   return (
@@ -86,14 +192,14 @@ export default function App() {
         <header className="text-center space-y-4 max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm font-medium">
             <Sparkles className="w-4 h-4" aria-hidden="true" />
-            <span>AI-Powered Multi-Agent Event Architecture</span>
+            <span>Decoupled Multi-Agent Event Architecture</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">
             Autonomous Event Planner
           </h1>
           <p className="text-slate-400 text-base sm:text-lg">
-            Provide your event parameters. Four Gemini 3.1 flash lite agents simultaneously formulate
-            the budget, operational milestones, vendor procurement items, and aesthetic concepts.
+            Submit your event parameters. Four autonomous Gemini agents will stream into their
+            respective dashboard cards asynchronously.
           </p>
         </header>
 
@@ -222,64 +328,79 @@ export default function App() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isAnyLoading}
                 className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/50 text-white font-semibold py-3 px-6 rounded-xl shadow-lg shadow-indigo-600/30 transition-all cursor-pointer disabled:cursor-not-allowed"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                    Synthesizing Multi-Agent Plan...
-                  </>
+                {isAnyLoading ? (
+                  <span>Streaming Agent Modules Asynchronously...</span>
                 ) : (
                   <>
-                    Generate Full Event Plan
+                    <span>Generate Full Event Plan</span>
                     <ArrowRight className="w-4 h-4" aria-hidden="true" />
                   </>
                 )}
               </button>
 
-              {planResult && (
+              {hasStartedPlanning && (
                 <button
                   type="button"
-                  onClick={() => setPlanResult(null)}
+                  onClick={handleReset}
                   className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors"
                 >
                   <RotateCcw className="w-4 h-4" aria-hidden="true" />
-                  Reset View
+                  <span>Reset Dashboard</span>
                 </button>
               )}
             </div>
           </form>
-
-          {/* Error Message Box */}
-          {errorMessage && (
-            <div
-              role="alert"
-              className="mt-6 p-4 rounded-xl bg-red-950/60 border border-red-500/50 text-red-200 flex items-start gap-3"
-            >
-              <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <p className="font-semibold text-sm">Failed to generate plan</p>
-                <p className="text-xs text-red-300/90 mt-1">{errorMessage}</p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Plan Display Grid */}
-        {planResult && (
+        {/* Dashboard Grid rendered immediately on form submission */}
+        {hasStartedPlanning && (
           <main className="space-y-8 animate-in fade-in duration-500">
+            {/* Dashboard Action Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-xl">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-100">
+                  {formData.event_type} Master Plan
+                </h2>
+                <p className="text-sm text-slate-400">
+                  Target: ${formData.budget.toLocaleString()} • {formData.guest_count} Guests • {formData.location}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <ExportManager plan={combinedPlan} />
+              </div>
+            </div>
+
             {/* Grid layout for Budget and Timeline */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              <BudgetVisualizer data={planResult.budget} />
-              <TimelineView data={planResult.timeline} />
+              <BudgetVisualizer
+                data={budgetData}
+                targetBudget={formData.budget}
+                isLoading={isBudgetLoading}
+                error={budgetError}
+              />
+              <TimelineView
+                data={timelineData}
+                isLoading={isTimelineLoading}
+                error={timelineError}
+              />
             </div>
 
             {/* Vendor Checklist */}
-            <VendorList data={planResult.vendors} />
+            <VendorList
+              data={vendorsData}
+              isLoading={isVendorsLoading}
+              error={vendorsError}
+            />
 
             {/* Creative Themes & MoodBoard */}
-            <MoodBoard data={planResult.ideas} />
+            <MoodBoard
+              data={ideasData}
+              isLoading={isIdeasLoading}
+              error={ideasError}
+            />
           </main>
         )}
       </div>

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +19,7 @@ from schemas import (
 logger = logging.getLogger("event_planner")
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="Event Planner API")
+app = FastAPI(title="Decoupled Event Planner API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,27 +35,61 @@ def health_check():
     return {"status": "ok"}
 
 
-@app.post("/api/plan")
-async def create_plan(request: PlannerRequest):
+@app.post("/api/plan/budget", response_model=BudgetResponse)
+async def plan_budget(request: PlannerRequest):
     try:
-        budget, timeline, vendors, ideas = await asyncio.gather(
-            generate_budget(request),
-            generate_timeline(request),
-            generate_vendors(request),
-            generate_ideas(request),
-        )
-        return {
-            "budget": budget,
-            "timeline": timeline,
-            "vendors": vendors,
-            "ideas": ideas,
-        }
+        return await generate_budget(request)
     except ValueError as exc:
-        logger.error("Configuration error in /api/plan: %s", exc)
+        logger.error("Config error in /api/plan/budget: %s", exc)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("Failed to generate complete event plan")
+        logger.exception("Failed to generate budget")
         raise HTTPException(
             status_code=502,
-            detail=f"Downstream AI generation service error: {exc}",
+            detail=f"Budget generation failed: {exc}",
+        ) from exc
+
+
+@app.post("/api/plan/timeline", response_model=TimelineResponse)
+async def plan_timeline(request: PlannerRequest):
+    try:
+        return await generate_timeline(request)
+    except ValueError as exc:
+        logger.error("Config error in /api/plan/timeline: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to generate timeline")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Timeline generation failed: {exc}",
+        ) from exc
+
+
+@app.post("/api/plan/vendors", response_model=VendorChecklist)
+async def plan_vendors(request: PlannerRequest):
+    try:
+        return await generate_vendors(request)
+    except ValueError as exc:
+        logger.error("Config error in /api/plan/vendors: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to generate vendors")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Vendor checklist generation failed: {exc}",
+        ) from exc
+
+
+@app.post("/api/plan/ideas", response_model=CreativeIdeas)
+async def plan_ideas(request: PlannerRequest):
+    try:
+        return await generate_ideas(request)
+    except ValueError as exc:
+        logger.error("Config error in /api/plan/ideas: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Failed to generate ideas")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Creative ideas generation failed: {exc}",
         ) from exc

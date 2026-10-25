@@ -1,16 +1,79 @@
 import React from 'react';
-import { Palette, Sparkles, Compass } from 'lucide-react';
+import { Palette, Sparkles, Compass, AlertTriangle, Loader2 } from 'lucide-react';
 import type { CreativeIdeas } from '../types';
 
 interface MoodBoardProps {
-  data: CreativeIdeas;
+  data?: CreativeIdeas | null;
+  isLoading?: boolean;
+  error?: string | null;
 }
 
-export const MoodBoard: React.FC<MoodBoardProps> = ({ data }) => {
+export const MoodBoard: React.FC<MoodBoardProps> = ({
+  data,
+  isLoading = false,
+  error = null,
+}) => {
+  // Loading Card State
+  if (isLoading) {
+    return (
+      <section
+        aria-labelledby="moodboard-loading-heading"
+        className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl min-h-[300px] flex flex-col justify-between"
+      >
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
+            <Palette className="w-5 h-5 animate-pulse" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 id="moodboard-loading-heading" className="text-xl font-bold text-slate-100">
+              Creative Moodboard & Aesthetics
+            </h2>
+            <p className="text-xs text-slate-400">Synthesizing color palettes and thematic concepts...</p>
+          </div>
+        </div>
+        <div className="flex flex-col items-center justify-center py-12 space-y-3">
+          <Loader2 className="w-8 h-8 text-pink-500 animate-spin" aria-hidden="true" />
+          <p className="text-sm font-medium text-slate-300">
+            Creative Director Agent crafting curated theme experiences...
+          </p>
+          <p className="text-xs text-slate-500">Formulating color harmonies and interactive activities</p>
+        </div>
+      </section>
+    );
+  }
+
+  // Error Card State
+  if (error || !data) {
+    return (
+      <section
+        aria-labelledby="moodboard-error-heading"
+        className="bg-slate-900/90 border border-red-500/30 rounded-2xl p-6 sm:p-7 shadow-xl min-h-[300px] flex flex-col justify-between"
+      >
+        <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+          <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+            <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+          </div>
+          <div>
+            <h2 id="moodboard-error-heading" className="text-xl font-bold text-slate-100">
+              Creative Moodboard Notice
+            </h2>
+            <p className="text-xs text-slate-400">Creative design status</p>
+          </div>
+        </div>
+        <div className="p-4 rounded-xl bg-red-950/40 border border-red-500/30 text-red-200 text-sm space-y-1">
+          <p className="font-semibold">Unable to load creative ideas</p>
+          <p className="text-xs text-red-300/80">
+            {error || 'Creative ideas generation delayed due to high demand. Please try again.'}
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       aria-labelledby="moodboard-heading"
-      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl space-y-6"
+      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-xl space-y-6 animate-in fade-in duration-300"
     >
       <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
         <div className="p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
