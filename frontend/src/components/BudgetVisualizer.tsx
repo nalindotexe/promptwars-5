@@ -35,7 +35,7 @@ const PALETTE = [
   '#14b8a6', // Teal
 ];
 
-export const BudgetVisualizer: React.FC<BudgetVisualizerProps> = ({
+const BudgetVisualizerComponent: React.FC<BudgetVisualizerProps> = ({
   data,
   targetBudget: propTargetBudget,
   isLoading = false,
@@ -335,3 +335,6 @@ export const BudgetVisualizer: React.FC<BudgetVisualizerProps> = ({
     </section>
   );
 };
+
+export const BudgetVisualizer = React.memo(BudgetVisualizerComponent);
+

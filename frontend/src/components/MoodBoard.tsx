@@ -8,7 +8,7 @@ interface MoodBoardProps {
   error?: string | null;
 }
 
-export const MoodBoard: React.FC<MoodBoardProps> = ({
+const MoodBoardComponent: React.FC<MoodBoardProps> = ({
   data,
   isLoading = false,
   error = null,
@@ -155,3 +155,6 @@ export const MoodBoard: React.FC<MoodBoardProps> = ({
     </section>
   );
 };
+
+export const MoodBoard = React.memo(MoodBoardComponent);
+

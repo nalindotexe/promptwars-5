@@ -32,7 +32,7 @@ const getPriorityBadge = (priority: 'High' | 'Medium' | 'Low' | string) => {
   }
 };
 
-export const TimelineView: React.FC<TimelineViewProps> = ({
+const TimelineViewComponent: React.FC<TimelineViewProps> = ({
   data,
   isLoading = false,
   error = null,
@@ -150,3 +150,6 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
     </section>
   );
 };
+
+export const TimelineView = React.memo(TimelineViewComponent);
+

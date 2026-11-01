@@ -21,7 +21,7 @@ interface ExportManagerProps {
   fileName?: string;
 }
 
-export const ExportManager: React.FC<ExportManagerProps> = ({
+const ExportManagerComponent: React.FC<ExportManagerProps> = ({
   planData,
   fileName = 'Event_Plan.pdf',
 }) => {
@@ -116,3 +116,6 @@ export const ExportManager: React.FC<ExportManagerProps> = ({
     </div>
   );
 };
+
+export const ExportManager = React.memo(ExportManagerComponent);
+

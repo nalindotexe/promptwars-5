@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   Calendar,
@@ -8,6 +8,7 @@ import {
   Sparkles,
   ArrowRight,
   RotateCcw,
+  Trash2,
 } from 'lucide-react';
 import type {
   BudgetResponse,
@@ -53,6 +54,47 @@ export default function App() {
   const [isIdeasLoading, setIsIdeasLoading] = useState(false);
   const [ideasError, setIdeasError] = useState<string | null>(null);
 
+  // Storage key for persistent state
+  const STORAGE_KEY = 'autonomous_event_plan';
+
+  // Hook 1: Check localStorage on mount and initialize state if saved plan exists
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.formData) setFormData(parsed.formData);
+        if (parsed.hasStartedPlanning !== undefined) setHasStartedPlanning(parsed.hasStartedPlanning);
+        if (parsed.budgetData) setBudgetData(parsed.budgetData);
+        if (parsed.timelineData) setTimelineData(parsed.timelineData);
+        if (parsed.vendorsData) setVendorsData(parsed.vendorsData);
+        if (parsed.ideasData) setIdeasData(parsed.ideasData);
+      }
+    } catch (e) {
+      console.error('Failed to load saved event plan from localStorage:', e);
+    }
+  }, []);
+
+  // Hook 2: Stringify and save event data state to localStorage whenever it updates
+  useEffect(() => {
+    // Save when planning has begun or any plan module data is loaded
+    if (hasStartedPlanning || budgetData || timelineData || vendorsData || ideasData) {
+      try {
+        const payload = {
+          formData,
+          hasStartedPlanning,
+          budgetData,
+          timelineData,
+          vendorsData,
+          ideasData,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (e) {
+        console.error('Failed to save event plan to localStorage:', e);
+      }
+    }
+  }, [formData, hasStartedPlanning, budgetData, timelineData, vendorsData, ideasData]);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -76,6 +118,16 @@ export default function App() {
     setTimelineError(null);
     setVendorsError(null);
     setIdeasError(null);
+  };
+
+  // Clear plan resets local state and purges browser localStorage
+  const handleClearPlan = () => {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.error('Failed to clear plan from localStorage:', e);
+    }
+    handleReset();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -336,11 +388,12 @@ export default function App() {
               {hasStartedPlanning && (
                 <button
                   type="button"
-                  onClick={handleReset}
-                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium transition-colors"
+                  onClick={handleClearPlan}
+                  className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-sm font-medium transition-colors cursor-pointer"
+                  title="Reset dashboard and remove saved plan from browser storage"
                 >
-                  <RotateCcw className="w-4 h-4" aria-hidden="true" />
-                  <span>Reset Dashboard</span>
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  <span>Clear Plan</span>
                 </button>
               )}
             </div>
@@ -361,6 +414,14 @@ export default function App() {
                 </p>
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleClearPlan}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-rose-500/30 hover:border-rose-500/60 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-sm font-medium transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" aria-hidden="true" />
+                  <span>Clear Plan</span>
+                </button>
                 <ExportManager
                   planData={{
                     event_info: formData,

@@ -8,7 +8,7 @@ interface VendorListProps {
   error?: string | null;
 }
 
-export const VendorList: React.FC<VendorListProps> = ({
+const VendorListComponent: React.FC<VendorListProps> = ({
   data,
   isLoading = false,
   error = null,
@@ -214,3 +214,6 @@ export const VendorList: React.FC<VendorListProps> = ({
     </section>
   );
 };
+
+export const VendorList = React.memo(VendorListComponent);
+
