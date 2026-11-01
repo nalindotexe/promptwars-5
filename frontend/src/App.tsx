@@ -7,7 +7,6 @@ import {
   MapPin,
   Sparkles,
   ArrowRight,
-  RotateCcw,
   Trash2,
 } from 'lucide-react';
 import type {
