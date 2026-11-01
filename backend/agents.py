@@ -1,3 +1,10 @@
+"""Autonomous event planning agent functions utilizing the Google GenAI SDK.
+
+This module orchestrates specialized AI agents using Gemini models to generate
+structured, validated planning artifacts (budget, timeline, vendors, and ideas)
+with exponential backoff retries via Tenacity.
+"""
+
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -14,11 +21,19 @@ from schemas import (
 
 load_dotenv()
 
-MODEL_NAME = "gemini-3.1-flash-lite"
+MODEL_NAME: str = "gemini-3.1-flash-lite"
 
 
 def _get_genai_client() -> genai.Client:
-    api_key = os.getenv("GEMINI_API_KEY")
+    """Retrieve and initialize the Google GenAI client from environment configuration.
+
+    Returns:
+        genai.Client: An authenticated Google GenAI client instance.
+
+    Raises:
+        ValueError: If GEMINI_API_KEY is not defined or is empty in the environment.
+    """
+    api_key: str | None = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError(
             "GEMINI_API_KEY environment variable is missing or empty. Please set it in backend/.env"
@@ -27,6 +42,14 @@ def _get_genai_client() -> genai.Client:
 
 
 def _build_context(request: PlannerRequest) -> str:
+    """Format planner request criteria into a uniform context string for LLM prompts.
+
+    Args:
+        request: The structured planner request containing event criteria.
+
+    Returns:
+        str: Multi-line formatted textual description of event specifications.
+    """
     return (
         f"Event Type: {request.event_type}\n"
         f"Total Budget: ${request.budget:,.2f}\n"
@@ -43,8 +66,24 @@ def _build_context(request: PlannerRequest) -> str:
     reraise=True,
 )
 async def generate_budget(request: PlannerRequest) -> BudgetResponse:
-    client = _get_genai_client()
-    prompt = (
+    """Generate an exact, zero-variance budget breakdown using the Finance Agent.
+
+    The model follows strict math rules ensuring all line items sum exactly
+    to the target budget, absorbing any rounding discrepancies into a mandatory
+    'Contingency & Buffer' category.
+
+    Args:
+        request: Event planner criteria defining budget, event type, and guest count.
+
+    Returns:
+        BudgetResponse: Validated structured breakdown of budget line items and percentages.
+
+    Raises:
+        ValueError: If API authentication fails.
+        Exception: If downstream generation or parsing fails after retries.
+    """
+    client: genai.Client = _get_genai_client()
+    prompt: str = (
         f"You are an expert Event Financial Planner. Your strict objective is to allocate a total budget of ${request.budget} for a {request.event_type} for {request.guest_count} guests.\n\n"
         "CRITICAL MATH RULES:\n\n"
         f"The sum of all allocated_amount values MUST EXACTLY EQUAL ${request.budget}. Not a dollar more, not a dollar less.\n\n"
@@ -53,7 +92,7 @@ async def generate_budget(request: PlannerRequest) -> BudgetResponse:
         f"MANDATORY CONTINGENCY: You must include a final line item named 'Contingency & Buffer'. You must mathematically use this specific line item to absorb any rounding differences or leftover funds so the total sum matches ${request.budget} perfectly.\n\n"
         "Do not generate any text outside of the requested JSON schema."
     )
-    config = types.GenerateContentConfig(
+    config: types.GenerateContentConfig = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=BudgetResponse,
         temperature=0.2,
@@ -74,13 +113,25 @@ async def generate_budget(request: PlannerRequest) -> BudgetResponse:
     reraise=True,
 )
 async def generate_timeline(request: PlannerRequest) -> TimelineResponse:
-    client = _get_genai_client()
-    prompt = (
+    """Generate chronological operational milestones with priority ratings.
+
+    Args:
+        request: Event planner criteria including dates, location, and guest count.
+
+    Returns:
+        TimelineResponse: Chronological milestone tasks with priority tags.
+
+    Raises:
+        ValueError: If API authentication fails.
+        Exception: If downstream generation or parsing fails after retries.
+    """
+    client: genai.Client = _get_genai_client()
+    prompt: str = (
         "You are a master event coordinator. Produce a chronological milestone timeline "
         "covering planning checkpoints leading up to and including event day, with priority ratings.\n\n"
         f"{_build_context(request)}"
     )
-    config = types.GenerateContentConfig(
+    config: types.GenerateContentConfig = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=TimelineResponse,
         temperature=0.3,
@@ -101,13 +152,25 @@ async def generate_timeline(request: PlannerRequest) -> TimelineResponse:
     reraise=True,
 )
 async def generate_vendors(request: PlannerRequest) -> VendorChecklist:
-    client = _get_genai_client()
-    prompt = (
+    """Generate a localized vendor checklist with targeted search queries.
+
+    Args:
+        request: Event planner criteria including location, event type, and budget.
+
+    Returns:
+        VendorChecklist: Categorized vendor checklist and search query recommendations.
+
+    Raises:
+        ValueError: If API authentication fails.
+        Exception: If downstream generation or parsing fails after retries.
+    """
+    client: genai.Client = _get_genai_client()
+    prompt: str = (
         "You are a professional vendor procurement specialist. Recommend vendor categories needed "
         "for this event, along with actionable, localized search terms to locate quality vendors.\n\n"
         f"{_build_context(request)}"
     )
-    config = types.GenerateContentConfig(
+    config: types.GenerateContentConfig = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=VendorChecklist,
         temperature=0.3,
@@ -128,13 +191,25 @@ async def generate_vendors(request: PlannerRequest) -> VendorChecklist:
     reraise=True,
 )
 async def generate_ideas(request: PlannerRequest) -> CreativeIdeas:
-    client = _get_genai_client()
-    prompt = (
+    """Generate 3 distinct creative concepts with color palettes and activities.
+
+    Args:
+        request: Event planner criteria defining mood, aesthetic, and venue context.
+
+    Returns:
+        CreativeIdeas: Exactly 3 curated event themes with palettes and activity suggestions.
+
+    Raises:
+        ValueError: If API authentication fails.
+        Exception: If downstream generation or parsing fails after retries.
+    """
+    client: genai.Client = _get_genai_client()
+    prompt: str = (
         "You are an innovative creative director for luxury and bespoke events. "
         "Provide exactly 3 distinct, compelling event themes with color palettes and experiential activities.\n\n"
         f"{_build_context(request)}"
     )
-    config = types.GenerateContentConfig(
+    config: types.GenerateContentConfig = types.GenerateContentConfig(
         response_mime_type="application/json",
         response_schema=CreativeIdeas,
         temperature=0.7,
