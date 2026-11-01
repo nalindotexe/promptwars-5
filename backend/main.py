@@ -29,6 +29,9 @@ from schemas import (
 logger: logging.Logger = logging.getLogger("event_planner")
 logging.basicConfig(level=logging.INFO)
 
+# Global in-memory cache for LLM responses to optimize performance and efficiency
+LLM_CACHE: Dict[str, Any] = {}
+
 app: FastAPI = FastAPI(title="Decoupled Event Planner API")
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -80,17 +83,22 @@ async def plan_budget(request: PlannerRequest) -> BudgetResponse:
         BudgetResponse: Allocated line items with amounts and percentage distribution.
 
     Raises:
-        HTTPException: 500 on configuration/credential errors, or 502 on upstream AI errors.
+        HTTPException: 500 on execution or configuration errors.
     """
     try:
-        return await generate_budget(request)
-    except ValueError as exc:
-        logger.error("Config error in /api/plan/budget: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        prompt_str: str = request.model_dump_json()
+        cache_key: str = f"budget_{prompt_str}"
+        if cache_key in LLM_CACHE:
+            logger.info("Serving /api/plan/budget from in-memory cache")
+            return LLM_CACHE[cache_key]
+
+        result: BudgetResponse = await generate_budget(request)
+        LLM_CACHE[cache_key] = result
+        return result
     except Exception as exc:
-        logger.exception("Failed to generate budget")
+        logger.error("Failed to generate budget in /api/plan/budget: %s", exc)
         raise HTTPException(
-            status_code=502,
+            status_code=500,
             detail=f"Budget generation failed: {exc}",
         ) from exc
 
@@ -106,17 +114,22 @@ async def plan_timeline(request: PlannerRequest) -> TimelineResponse:
         TimelineResponse: Chronological planning checkpoints with assigned priorities.
 
     Raises:
-        HTTPException: 500 on configuration/credential errors, or 502 on upstream AI errors.
+        HTTPException: 500 on execution or configuration errors.
     """
     try:
-        return await generate_timeline(request)
-    except ValueError as exc:
-        logger.error("Config error in /api/plan/timeline: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        prompt_str: str = request.model_dump_json()
+        cache_key: str = f"timeline_{prompt_str}"
+        if cache_key in LLM_CACHE:
+            logger.info("Serving /api/plan/timeline from in-memory cache")
+            return LLM_CACHE[cache_key]
+
+        result: TimelineResponse = await generate_timeline(request)
+        LLM_CACHE[cache_key] = result
+        return result
     except Exception as exc:
-        logger.exception("Failed to generate timeline")
+        logger.error("Failed to generate timeline in /api/plan/timeline: %s", exc)
         raise HTTPException(
-            status_code=502,
+            status_code=500,
             detail=f"Timeline generation failed: {exc}",
         ) from exc
 
@@ -132,17 +145,22 @@ async def plan_vendors(request: PlannerRequest) -> VendorChecklist:
         VendorChecklist: Recommended vendor categories and tailored query terms.
 
     Raises:
-        HTTPException: 500 on configuration/credential errors, or 502 on upstream AI errors.
+        HTTPException: 500 on execution or configuration errors.
     """
     try:
-        return await generate_vendors(request)
-    except ValueError as exc:
-        logger.error("Config error in /api/plan/vendors: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        prompt_str: str = request.model_dump_json()
+        cache_key: str = f"vendors_{prompt_str}"
+        if cache_key in LLM_CACHE:
+            logger.info("Serving /api/plan/vendors from in-memory cache")
+            return LLM_CACHE[cache_key]
+
+        result: VendorChecklist = await generate_vendors(request)
+        LLM_CACHE[cache_key] = result
+        return result
     except Exception as exc:
-        logger.exception("Failed to generate vendors")
+        logger.error("Failed to generate vendors in /api/plan/vendors: %s", exc)
         raise HTTPException(
-            status_code=502,
+            status_code=500,
             detail=f"Vendor checklist generation failed: {exc}",
         ) from exc
 
@@ -158,17 +176,22 @@ async def plan_ideas(request: PlannerRequest) -> CreativeIdeas:
         CreativeIdeas: Exactly 3 curated event design concepts.
 
     Raises:
-        HTTPException: 500 on configuration/credential errors, or 502 on upstream AI errors.
+        HTTPException: 500 on execution or configuration errors.
     """
     try:
-        return await generate_ideas(request)
-    except ValueError as exc:
-        logger.error("Config error in /api/plan/ideas: %s", exc)
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        prompt_str: str = request.model_dump_json()
+        cache_key: str = f"ideas_{prompt_str}"
+        if cache_key in LLM_CACHE:
+            logger.info("Serving /api/plan/ideas from in-memory cache")
+            return LLM_CACHE[cache_key]
+
+        result: CreativeIdeas = await generate_ideas(request)
+        LLM_CACHE[cache_key] = result
+        return result
     except Exception as exc:
-        logger.exception("Failed to generate ideas")
+        logger.error("Failed to generate ideas in /api/plan/ideas: %s", exc)
         raise HTTPException(
-            status_code=502,
+            status_code=500,
             detail=f"Creative ideas generation failed: {exc}",
         ) from exc
 
@@ -196,7 +219,7 @@ async def export_pdf(payload: Dict[str, Any]) -> Response:
             },
         )
     except Exception as exc:
-        logger.exception("Failed to generate server-side PDF")
+        logger.error("Failed to generate server-side PDF in /api/export-pdf: %s", exc)
         raise HTTPException(
             status_code=500,
             detail=f"PDF generation failed: {exc}",

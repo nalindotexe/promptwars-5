@@ -5,6 +5,7 @@ structured, validated planning artifacts (budget, timeline, vendors, and ideas)
 with exponential backoff retries via Tenacity.
 """
 
+import logging
 import os
 from dotenv import load_dotenv
 from google import genai
@@ -20,6 +21,9 @@ from schemas import (
 )
 
 load_dotenv()
+
+logger: logging.Logger = logging.getLogger("event_planner.agents")
+logging.basicConfig(level=logging.INFO)
 
 MODEL_NAME: str = "gemini-3.1-flash-lite"
 
@@ -82,29 +86,33 @@ async def generate_budget(request: PlannerRequest) -> BudgetResponse:
         ValueError: If API authentication fails.
         Exception: If downstream generation or parsing fails after retries.
     """
-    client: genai.Client = _get_genai_client()
-    prompt: str = (
-        f"You are an expert Event Financial Planner. Your strict objective is to allocate a total budget of ${request.budget} for a {request.event_type} for {request.guest_count} guests.\n\n"
-        "CRITICAL MATH RULES:\n\n"
-        f"The sum of all allocated_amount values MUST EXACTLY EQUAL ${request.budget}. Not a dollar more, not a dollar less.\n\n"
-        "Determine logical percentage allocations for the top 4-5 categories (e.g., Venue 30%, Food 40%) based on the event type.\n\n"
-        "Calculate the exact dollar amount for each category.\n\n"
-        f"MANDATORY CONTINGENCY: You must include a final line item named 'Contingency & Buffer'. You must mathematically use this specific line item to absorb any rounding differences or leftover funds so the total sum matches ${request.budget} perfectly.\n\n"
-        "Do not generate any text outside of the requested JSON schema."
-    )
-    config: types.GenerateContentConfig = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=BudgetResponse,
-        temperature=0.2,
-    )
-    response = await client.aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=config,
-    )
-    if response.parsed is not None:
-        return response.parsed
-    return BudgetResponse.model_validate_json(response.text)
+    try:
+        client: genai.Client = _get_genai_client()
+        prompt: str = (
+            f"You are an expert Event Financial Planner. Your strict objective is to allocate a total budget of ${request.budget} for a {request.event_type} for {request.guest_count} guests.\n\n"
+            "CRITICAL MATH RULES:\n\n"
+            f"The sum of all allocated_amount values MUST EXACTLY EQUAL ${request.budget}. Not a dollar more, not a dollar less.\n\n"
+            "Determine logical percentage allocations for the top 4-5 categories (e.g., Venue 30%, Food 40%) based on the event type.\n\n"
+            "Calculate the exact dollar amount for each category.\n\n"
+            f"MANDATORY CONTINGENCY: You must include a final line item named 'Contingency & Buffer'. You must mathematically use this specific line item to absorb any rounding differences or leftover funds so the total sum matches ${request.budget} perfectly.\n\n"
+            "Do not generate any text outside of the requested JSON schema."
+        )
+        config: types.GenerateContentConfig = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=BudgetResponse,
+            temperature=0.2,
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=config,
+        )
+        if response.parsed is not None:
+            return response.parsed
+        return BudgetResponse.model_validate_json(response.text)
+    except Exception as exc:
+        logger.error("Error in generate_budget agent: %s", exc)
+        raise
 
 
 @retry(
@@ -125,25 +133,29 @@ async def generate_timeline(request: PlannerRequest) -> TimelineResponse:
         ValueError: If API authentication fails.
         Exception: If downstream generation or parsing fails after retries.
     """
-    client: genai.Client = _get_genai_client()
-    prompt: str = (
-        "You are a master event coordinator. Produce a chronological milestone timeline "
-        "covering planning checkpoints leading up to and including event day, with priority ratings.\n\n"
-        f"{_build_context(request)}"
-    )
-    config: types.GenerateContentConfig = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=TimelineResponse,
-        temperature=0.3,
-    )
-    response = await client.aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=config,
-    )
-    if response.parsed is not None:
-        return response.parsed
-    return TimelineResponse.model_validate_json(response.text)
+    try:
+        client: genai.Client = _get_genai_client()
+        prompt: str = (
+            "You are a master event coordinator. Produce a chronological milestone timeline "
+            "covering planning checkpoints leading up to and including event day, with priority ratings.\n\n"
+            f"{_build_context(request)}"
+        )
+        config: types.GenerateContentConfig = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=TimelineResponse,
+            temperature=0.3,
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=config,
+        )
+        if response.parsed is not None:
+            return response.parsed
+        return TimelineResponse.model_validate_json(response.text)
+    except Exception as exc:
+        logger.error("Error in generate_timeline agent: %s", exc)
+        raise
 
 
 @retry(
@@ -164,25 +176,29 @@ async def generate_vendors(request: PlannerRequest) -> VendorChecklist:
         ValueError: If API authentication fails.
         Exception: If downstream generation or parsing fails after retries.
     """
-    client: genai.Client = _get_genai_client()
-    prompt: str = (
-        "You are a professional vendor procurement specialist. Recommend vendor categories needed "
-        "for this event, along with actionable, localized search terms to locate quality vendors.\n\n"
-        f"{_build_context(request)}"
-    )
-    config: types.GenerateContentConfig = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=VendorChecklist,
-        temperature=0.3,
-    )
-    response = await client.aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=config,
-    )
-    if response.parsed is not None:
-        return response.parsed
-    return VendorChecklist.model_validate_json(response.text)
+    try:
+        client: genai.Client = _get_genai_client()
+        prompt: str = (
+            "You are a professional vendor procurement specialist. Recommend vendor categories needed "
+            "for this event, along with actionable, localized search terms to locate quality vendors.\n\n"
+            f"{_build_context(request)}"
+        )
+        config: types.GenerateContentConfig = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=VendorChecklist,
+            temperature=0.3,
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=config,
+        )
+        if response.parsed is not None:
+            return response.parsed
+        return VendorChecklist.model_validate_json(response.text)
+    except Exception as exc:
+        logger.error("Error in generate_vendors agent: %s", exc)
+        raise
 
 
 @retry(
@@ -203,22 +219,26 @@ async def generate_ideas(request: PlannerRequest) -> CreativeIdeas:
         ValueError: If API authentication fails.
         Exception: If downstream generation or parsing fails after retries.
     """
-    client: genai.Client = _get_genai_client()
-    prompt: str = (
-        "You are an innovative creative director for luxury and bespoke events. "
-        "Provide exactly 3 distinct, compelling event themes with color palettes and experiential activities.\n\n"
-        f"{_build_context(request)}"
-    )
-    config: types.GenerateContentConfig = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=CreativeIdeas,
-        temperature=0.7,
-    )
-    response = await client.aio.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=config,
-    )
-    if response.parsed is not None:
-        return response.parsed
-    return CreativeIdeas.model_validate_json(response.text)
+    try:
+        client: genai.Client = _get_genai_client()
+        prompt: str = (
+            "You are an innovative creative director for luxury and bespoke events. "
+            "Provide exactly 3 distinct, compelling event themes with color palettes and experiential activities.\n\n"
+            f"{_build_context(request)}"
+        )
+        config: types.GenerateContentConfig = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=CreativeIdeas,
+            temperature=0.7,
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=config,
+        )
+        if response.parsed is not None:
+            return response.parsed
+        return CreativeIdeas.model_validate_json(response.text)
+    except Exception as exc:
+        logger.error("Error in generate_ideas agent: %s", exc)
+        raise

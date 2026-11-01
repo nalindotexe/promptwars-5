@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import axios from 'axios';
 import {
   Calendar,
@@ -16,12 +16,30 @@ import type {
   CreativeIdeas,
   PlannerRequest,
 } from './types';
-import { BudgetVisualizer } from './components/BudgetVisualizer';
-import { TimelineView } from './components/TimelineView';
-import { VendorList } from './components/VendorList';
-import { MoodBoard } from './components/MoodBoard';
 import { ExportManager } from './components/ExportManager';
 import { API_BASE_URL } from './config';
+
+// Dynamically import widgets using React.lazy for code splitting
+const BudgetVisualizer = lazy(() =>
+  import('./components/BudgetVisualizer').then((module) => ({
+    default: module.BudgetVisualizer,
+  }))
+);
+const TimelineView = lazy(() =>
+  import('./components/TimelineView').then((module) => ({
+    default: module.TimelineView,
+  }))
+);
+const VendorList = lazy(() =>
+  import('./components/VendorList').then((module) => ({
+    default: module.VendorList,
+  }))
+);
+const MoodBoard = lazy(() =>
+  import('./components/MoodBoard').then((module) => ({
+    default: module.MoodBoard,
+  }))
+);
 
 export default function App() {
   const [formData, setFormData] = useState<PlannerRequest>({
@@ -434,34 +452,37 @@ export default function App() {
               </div>
             </div>
 
-            {/* Grid layout for Budget and Timeline */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-              <BudgetVisualizer
-                data={budgetData}
-                targetBudget={formData.budget}
-                isLoading={isBudgetLoading}
-                error={budgetError}
-              />
-              <TimelineView
-                data={timelineData}
-                isLoading={isTimelineLoading}
-                error={timelineError}
-              />
-            </div>
+            {/* Suspense wrapper with fallback for dynamically loaded widgets */}
+            <Suspense fallback={<p>Loading component...</p>}>
+              {/* Grid layout for Budget and Timeline */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                <BudgetVisualizer
+                  data={budgetData}
+                  targetBudget={formData.budget}
+                  isLoading={isBudgetLoading}
+                  error={budgetError}
+                />
+                <TimelineView
+                  data={timelineData}
+                  isLoading={isTimelineLoading}
+                  error={timelineError}
+                />
+              </div>
 
-            {/* Vendor Checklist */}
-            <VendorList
-              data={vendorsData}
-              isLoading={isVendorsLoading}
-              error={vendorsError}
-            />
+              {/* Vendor Checklist */}
+              <VendorList
+                data={vendorsData}
+                isLoading={isVendorsLoading}
+                error={vendorsError}
+              />
 
-            {/* Creative Themes & MoodBoard */}
-            <MoodBoard
-              data={ideasData}
-              isLoading={isIdeasLoading}
-              error={ideasError}
-            />
+              {/* Creative Themes & MoodBoard */}
+              <MoodBoard
+                data={ideasData}
+                isLoading={isIdeasLoading}
+                error={ideasError}
+              />
+            </Suspense>
           </main>
         )}
       </div>
